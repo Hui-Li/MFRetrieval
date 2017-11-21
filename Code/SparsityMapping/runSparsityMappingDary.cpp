@@ -11,8 +11,8 @@ int main() {
     int k = 10;
     int d = 100;
     // input must be normalized vectors
-    string q_file = "../data/Test/q.txt";
-    string p_file = "../data/Test/p.txt";
+    string q_file = "../Test_Data/q.txt";
+    string p_file = "../Test_Data/p.txt";
     string output_path = "./results/Dary-results.txt";
     //////////////// Parameters /////////////////
 

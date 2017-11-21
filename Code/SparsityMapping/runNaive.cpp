@@ -49,8 +49,8 @@ int main() {
 
     //////////////// Parameters /////////////////
     int k = 10;
-    string q_file = "../data/Test/q.txt";
-    string p_file = "../data/Test/p.txt";
+    string q_file = "../Test_Data/q.txt";
+    string p_file = "../Test_Data/p.txt";
     string output_path = "./results/Naive-results.txt";
     //////////////// Parameters /////////////////
 
