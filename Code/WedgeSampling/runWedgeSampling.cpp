@@ -1,66 +1,36 @@
 #include "util/Base.h"
 #include "alg/WedgeSampling.h"
 
-/**
- * Naive solution.
- */
-void naive(const int threadNum, const int qNum, const int pNum, const int d, const int k, const double *q, const double *p,
-           VectorElement *results) {
-    Monitor timer;
-    timer.start();
+// average recall, see paper:
+// EFANNA : An Extremely Fast Approximate Nearest Neighbor Search Algorithm Based on kNN Graph
+void avg_recall(const int QNum, const int k, string groundTruthFilePath, VectorElement *diamondSampleResults) {
+    vector<unordered_set<double> > groundTruth(QNum);
+    FileUtil::readGroundtruth(groundTruth, groundTruthFilePath);
 
-    vector<std::thread> exec_threads(threadNum);
-    int workload = qNum / threadNum;
+    int count = 0;
 
-    for (int thread_index = 0; thread_index < threadNum; thread_index++) {
+    for (int qIndex = 0; qIndex < QNum; qIndex++) {
 
-        exec_threads[thread_index] = std::thread(std::bind([&](const int thread_index) {
+        unordered_set<double> &truth = groundTruth[qIndex];
+        VectorElement *result = diamondSampleResults + qIndex * k;
 
-            int start = workload * thread_index;
-            int end = workload * thread_index + workload;
-            end = end > qNum ? qNum: end;
-
-            for (int qID = start; qID < end; qID++) {
-
-                int heapCount = 0;
-                const double *qRow = q + qID * d;
-                VectorElement *heap = results + qID * k;
-
-                for (int pID = 0; pID < k; pID++) {
-                    const double *pRow = p + pID * d;
-                    double value = std::inner_product(qRow, qRow + d, pRow, 0.0);
-                    heap_enqueue(value, pID, heap, &heapCount);
-                }
-
-                for (int pID = k; pID < pNum; pID++) {
-                    const double *pRow = p + pID * d;
-                    double value = std::inner_product(qRow, qRow + d, pRow, 0.0);
-
-                    if (value > heap[0].data) {
-                        heap_dequeue(heap, &heapCount);
-                        heap_enqueue(value, pID, heap, &heapCount);
-                    }
-                }
+        for (int i = 0; i < k; i++) {
+            if (truth.find(result[i].data) != truth.end()) {
+                count++;
             }
-
-        }, thread_index));
+        }
     }
 
-    for (int thread_index = 0; thread_index < threadNum; thread_index++) {
-        exec_threads[thread_index].join();
-    }
+    double recall = count / (k * QNum * 1.0);
 
-    timer.stop();
-
-    cout << "naive parallel solution: " << timer.getElapsedTime() << " secs" << endl;
+    cout << "avg recall: " << recall << endl;
 }
-
 
 int main(int argc, char **argv) {
 
-    bool compareWithNaive = true;
     string QFilePath = "../../data/MovieLens/q.txt";
     string PFilePath = "../../data/MovieLens/p.txt";
+    string groundTruthFilePath = "../../data/MovieLens/result.txt";
     string outputFilePath = "result.txt";
     int k = 10;
     int s = 1000;
@@ -71,13 +41,14 @@ int main(int argc, char **argv) {
     po::options_description desc("Allowed options");
     desc.add_options()
             ("help", "produce help message")
-            ("compareWithNaive", po::value<bool>(&compareWithNaive)->default_value(true), "compare with naive solution")
             ("k", po::value<int>(&k)->default_value(10), "top k")
             ("s", po::value<int>(&s)->default_value(1000), "number of samples")
             ("q_file", po::value<string>(&QFilePath)->default_value("../../data/MovieLens/q.txt"),
              "file path to Q data file")
             ("p_file", po::value<string>(&PFilePath)->default_value("../../data/MovieLens/p.txt"),
              "file path to P data file")
+            ("groundTruth", po::value<string>(&groundTruthFilePath)->default_value("../../data/MovieLens/result.txt"),
+             "file path to ground truth")
             ("outputFilePath", po::value<string>(&outputFilePath)->default_value("result.txt"),
              "file path to result file");
 
@@ -93,7 +64,7 @@ int main(int argc, char **argv) {
     FileUtil::read(QFilePath, QNum, d, QData);
     FileUtil::read(PFilePath, PNum, d, PData);
 
-    cout << "compareWithNaive: " << compareWithNaive << endl;
+    cout << "k: " << k << endl;
     cout << "s: " << s << endl;
     cout << "QNum: " << QNum << endl;
     cout << "PNum: " << PNum << endl;
@@ -104,17 +75,10 @@ int main(int argc, char **argv) {
     WedgeSampling wedgeSampling(QNum, PNum, d, QData, PData);
     wedgeSampling.topk(k, s, wedgeSampleResults);
 
-    if (compareWithNaive) {
-        VectorElement *naiveResults = new VectorElement[QNum * k];
+    FileUtil::outputResult(k, d, QNum, QData, PData, wedgeSampleResults, outputFilePath);
 
-        int nthreads = std::thread::hardware_concurrency();
-        cout << "number of threads: " << nthreads << endl;
-        naive(nthreads, QNum, PNum, d, k, QData, PData, naiveResults);
-
-        FileUtil::outputResult(k, d, QNum, QData, PData, wedgeSampleResults, naiveResults, outputFilePath);
-        delete[] naiveResults;
-    } else {
-        FileUtil::outputResult(k, d, QNum, QData, PData, wedgeSampleResults, outputFilePath);
+    if (groundTruthFilePath.length() != 0) {
+        avg_recall(QNum, k, groundTruthFilePath, wedgeSampleResults);
     }
 
     delete[] QData;

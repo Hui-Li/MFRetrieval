@@ -69,19 +69,26 @@ namespace FileUtil{
         file.close();
     }
 
-    void outputResult(const int k, const int d, const int qNum, const double *q, const double *p, VectorElement *results, VectorElement *naiveResults, string &resultPath) {
+    void readGroundtruth(vector<unordered_set<double> > &groundTruth, string groundTruthPath) {
 
-        ofstream file(resultPath.c_str());
+        string line;
 
-        for (int qIndex = 0; qIndex < qNum; qIndex++) {
-            for (int i = 0; i < k; i++) {
-                const double *qPtr = q + qIndex * d;
-                const double *pPtr = p + results[qIndex * k + i].id * d;
-                double ip = std::inner_product(qPtr, qPtr + d, pPtr, 0.0);
-                file << qIndex << "," << results[qIndex * k + i].id << "," << ip << "," << naiveResults[qIndex * k + i].id << "," << naiveResults[qIndex * k + i].data << endl;
+        ifstream fin(groundTruthPath.c_str());
+
+        vector<string> pars;
+        while (getline(fin, line)) {
+            if (line.length() == 0) {
+                continue;
             }
+
+            boost::split(pars, line, boost::is_any_of(","));
+            int qID = stoi(pars[0]);
+            // use strtod instead of stod, in case there is some numebrs like 2.53915e-316
+            double value = std::strtod(pars[2].c_str(), nullptr);
+            groundTruth[qID].insert(value);
         }
-        file.close();
+
+        fin.close();
     }
 
 }
