@@ -1,31 +1,13 @@
 #include "util/Base.h"
 #include "alg/WedgeSampling.h"
+#include "util/EvalUtil.h"
 
-// average recall, see paper:
-// EFANNA : An Extremely Fast Approximate Nearest Neighbor Search Algorithm Based on kNN Graph
-void avg_recall(const int QNum, const int k, string groundTruthFilePath, VectorElement *diamondSampleResults) {
-    vector<unordered_set<double> > groundTruth(QNum);
-    FileUtil::readGroundtruth(groundTruth, groundTruthFilePath);
-
-    int count = 0;
-
-    for (int qIndex = 0; qIndex < QNum; qIndex++) {
-
-        unordered_set<double> &truth = groundTruth[qIndex];
-        VectorElement *result = diamondSampleResults + qIndex * k;
-
-        for (int i = 0; i < k; i++) {
-            if (truth.find(result[i].data) != truth.end()) {
-                count++;
-            }
-        }
-    }
-
-    double recall = count / (k * QNum * 1.0);
-
-    cout << "avg recall: " << recall << endl;
-}
-
+/**
+ * Wedge Sampling
+ * @param argc
+ * @param argv
+ * @return
+ */
 int main(int argc, char **argv) {
 
     string QFilePath = "../../data/MovieLens/q.txt";
@@ -78,7 +60,7 @@ int main(int argc, char **argv) {
     FileUtil::outputResult(k, d, QNum, QData, PData, wedgeSampleResults, outputFilePath);
 
     if (groundTruthFilePath.length() != 0) {
-        avg_recall(QNum, k, groundTruthFilePath, wedgeSampleResults);
+        EvalUtil::avg_recall(QNum, k, groundTruthFilePath, wedgeSampleResults);
     }
 
     delete[] QData;

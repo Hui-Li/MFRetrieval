@@ -18,7 +18,8 @@ if(Boost_FOUND)
 endif(Boost_FOUND)
 
 set(alg
-    alg/WedgeSampling.h)
+    alg/WedgeSampling.h
+    alg/WedgePreSampling.h)
 
 set(structs
     structs/FastHeap.h
@@ -34,10 +35,11 @@ set(util
     util/RandomUtil.h
     util/FileUtil.h
     util/AliasSamplingGenerator.h
-    util/Calculator.h)
+    util/Calculator.h util/EvalUtil.h)
 
 add_library(WedgeSampling SHARED ${alg} ${util} ${structs})
 set_target_properties(WedgeSampling PROPERTIES LINKER_LANGUAGE CXX)
 link_libraries(WedgeSampling ${Boost_LIBRARIES} ${MKL_LIBRARIES})
 
+add_executable(runWedgePreSampling runWedgePreSampling.cpp)
 add_executable(runWedgeSampling runWedgeSampling.cpp)

@@ -17,4 +17,4 @@ C++ implementation for papers:
 
 
 
-You can check scripts/runWedgeSampling.sh for a running example.
+You can check scripts/runWedgeSampling.sh or scripts/runWedgePreSampling.sh for running examples.

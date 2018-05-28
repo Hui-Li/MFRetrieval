@@ -11,8 +11,8 @@
 #include "../util/AliasSamplingGenerator.h"
 #include "../structs/FastHeap.h"
 #include "../util/Monitor.h"
+#include "../util/RandomUtil.h"
 
-#define DEBUG
 
 class WedgeSampling{
 
@@ -27,11 +27,6 @@ private:
     Node *P_second_level = nullptr;
     Node *N_second_level = nullptr;
     Node *third_level = nullptr;
-
-    vector<vector<int> > positive_pre_sampled_results, negative_pre_sampled_results;
-    vector<double> positive_preprocessed_query, negative_preprocessed_query;
-
-    vector<double> p_a, n_a;
 
     inline void set_edge(Node *from_node, Node *to_node, const int edge_index, const double weight){
         if(from_node->next_level_size > 0) {
@@ -57,53 +52,36 @@ private:
         }
     }
 
-    inline void pre_sample(){
-
-        p_a.resize(d, 0);
-        n_a.resize(d, 0);
-
-        vector<double> p_weight(PNum, 0), n_weight(PNum, 0);
-        positive_pre_sampled_results.resize(d, vector<int>(s));
-        negative_pre_sampled_results.resize(d, vector<int>(s));
-
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<> dis(0, 1.0);
-
-        for (int j = 0; j < d; j++) {
-
-            p_weight.resize(PNum, 0);
-            n_weight.resize(PNum, 0);
-
-            double *rowPtr = P_T + j * PNum;
-
-            for (int pIndex = 0; pIndex < PNum; pIndex++) {
-                if (rowPtr[pIndex] > 0) {
-                    p_a[j] += rowPtr[pIndex];
-                    p_weight[pIndex] = rowPtr[j];
-                } else {
-                    n_a[j] -= rowPtr[pIndex];
-                    n_weight[pIndex] = -rowPtr[j];
-                }
-            }
-
-            vector<int> &p_pre_samples = positive_pre_sampled_results[j];
-            vector<int> &n_pre_samples = negative_pre_sampled_results[j];
-
-            AliasSamplingGenerator p_generator(p_weight.size(), p_weight.data());
-            AliasSamplingGenerator n_generator(p_weight.size(), p_weight.data());
-
-            for (int i = 0; i < s; i++) {
-                p_pre_samples[i] = p_generator.sample(dis(gen), dis(gen));
-                n_pre_samples[i] = n_generator.sample(dis(gen), dis(gen));
-            }
+    inline void compute_prob(Node *node){
+        for (int col = 0; col < node->next_level_size; col++) {
+            Edge *edge = node->to_next_level[col];
+            node->transistion[col] = edge->weight * edge->to->W / edge->from->W;
         }
 
+        node->clear_generator();
+    }
+
+    inline void compute_probs(const int level_size, Node *level){
+        for (int i = 0; i < level_size; i++) {
+            compute_prob(level + i);
+        }
+    }
+
+    inline int sample(Node *start_node){
+
+        // first -> second
+        int target_edge_index = DiscreteRandomGenerator::DiscreteRandom(start_node);
+        Node *node_second_level = start_node->to_next_level[target_edge_index]->to;
+
+        // second -> third
+        target_edge_index = DiscreteRandomGenerator::DiscreteRandom(node_second_level);
+
+        return target_edge_index;
     }
 
 public:
 
-    WedgeSampling(const int QNum, const int PNum, const int d, double *QData, double *PData):QNum(QNum), PNum(PNum), d(d), QData(QData), PData(PData) {
+     WedgeSampling(const int QNum, const int PNum, const int d, double *QData, double *PData):QNum(QNum), PNum(PNum), d(d), QData(QData), PData(PData) {
     }
 
     ~WedgeSampling(){
@@ -171,18 +149,15 @@ public:
             }
         }
 
-        // Compute W values for second level
+        // Compute W and Probability for second level -> third level
         compute_Ws(second_level_size, P_second_level);
         compute_Ws(second_level_size, N_second_level);
 
+        compute_probs(second_level_size, P_second_level);
+        compute_probs(second_level_size, N_second_level);
+
         timer.stop();
         cout << "prepare time: " << timer.getElapsedTime() << " secs" << endl;
-        total_time += timer.getElapsedTime();
-
-        timer.start();
-        pre_sample();
-        timer.stop();
-        cout << "presample time: " << timer.getElapsedTime() << " secs" << endl;
         total_time += timer.getElapsedTime();
 
         timer.start();
@@ -191,14 +166,12 @@ public:
         std::uniform_real_distribution<> dis(0, 1.0);
 
         vector<double> weights(2);
-        unordered_map<int, double> scores;
 
 #ifdef DEBUG
         double set_edge_time = 0;
         double compute_w_time = 0;
-        double sum_time = 0;
+        double clear_map_time = 0;
         double nonuniformed_sample_time = 0;
-        double round_time = 0;
         double search_time = 0;
         double heap_time = 0;
         Monitor timer2;
@@ -243,68 +216,34 @@ public:
             // Compute W values for the first level (used together with sampled results for ranking)
             compute_Ws(first_level_size, P_first_level);
             compute_Ws(first_level_size, N_first_level);
-
-#ifdef DEBUG
-            timer2.stop();
-            compute_w_time += timer2.getElapsedTime();
-
-            timer2.start();
-#endif
+            compute_probs(first_level_size, P_first_level);
+            compute_probs(first_level_size, N_first_level);
 
             double positive_weight = P_first_level[0].W;
             double negative_weight = N_first_level[1].W;
 
-            positive_preprocessed_query.resize(d, 0);
-            negative_preprocessed_query.resize(d, 0);
-            scores.clear();
-
-            for (int i = 0; i < d; i++) {
-                if (qPtr[i] > 0) {
-                    positive_preprocessed_query[i] = qPtr[i] * p_a[i];
-//                    positive_sum += positive_preprocessed_query[i];
-                } else {
-                    negative_preprocessed_query[i] = -qPtr[i] * n_a[i];
-//                    negative_sum += negative_preprocessed_query[i];
-                }
-            }
-
-            // this is faster!
-            double positive_sum = std::accumulate(positive_preprocessed_query.begin(), positive_preprocessed_query.end(), 0.0);;
-            double negative_sum = std::accumulate(negative_preprocessed_query.begin(), negative_preprocessed_query.end(), 0.0);;
-
 #ifdef DEBUG
             timer2.stop();
-            sum_time += timer2.getElapsedTime();
+            compute_w_time += timer2.getElapsedTime();
 #endif
 
-            for (int i = 0; i < d; i++) {
+#ifdef DEBUG
+            timer2.start();
+#endif
+            unordered_map<int, double> scores;
+//            scores.clear();
+#ifdef DEBUG
+            timer2.stop();
+            clear_map_time += timer2.getElapsedTime();
+#endif
 
-                if(positive_preprocessed_query[i]==0){
-                    continue;
-                }
-
+            for (int i = 0; i < s; i++) {
 #ifdef DEBUG
                 timer2.start();
 #endif
 
-                double value = positive_preprocessed_query[i] / positive_sum * s;
-
-                int floor_value = std::floor(value);
-                int ceil_value = std::ceil(value);
-
-                weights[0] = ceil_value - value;
-                weights[1] = value - floor_value;
-
-#ifdef DEBUG
-                timer2.stop();
-                round_time += timer2.getElapsedTime();
-
-                timer2.start();
-#endif
-
-                AliasSamplingGenerator p_generator(weights.size(), weights.data());
-
-                int positive_sample_size = p_generator.sample(dis(gen), dis(gen)) == 0 ? floor_value : ceil_value;
+                int pos_sample = sample(P_first_level);
+                int neg_sample = sample(N_first_level);
 
 #ifdef DEBUG
                 timer2.stop();
@@ -312,82 +251,15 @@ public:
 
                 timer2.start();
 #endif
-
-                vector<int> &p_pre_samples = positive_pre_sampled_results[i];
-
-                for (int sample_index = 0; sample_index < positive_sample_size; sample_index++) {
-                    int sampled_target = p_pre_samples[sample_index];
-                    if(scores.find(sampled_target)==scores.end()){
-                        scores[sampled_target] = positive_weight;
-                    } else {
-                        scores[sampled_target] += positive_weight;
-                    }
-                }
+                scores[pos_sample] += positive_weight;
+                scores[neg_sample] -= negative_weight;
 
 #ifdef DEBUG
                 timer2.stop();
                 search_time += timer2.getElapsedTime();
 #endif
-
             }
 
-            for (int i = 0; i < d; i++) {
-
-                if(negative_preprocessed_query[i]==0){
-                    continue;
-                }
-
-#ifdef DEBUG
-                timer2.start();
-#endif
-
-                double value = s * negative_preprocessed_query[i] / negative_sum;
-
-                int floor_value = std::floor(value);
-                int ceil_value = std::ceil(value);
-
-                weights[0] = ceil_value - value;
-                weights[1] = value - floor_value;
-
-#ifdef DEBUG
-                timer2.stop();
-                round_time += timer2.getElapsedTime();
-
-                timer2.start();
-#endif
-
-                AliasSamplingGenerator n_generator(weights.size(), weights.data());
-
-#ifdef DEBUG
-                timer2.stop();
-                nonuniformed_sample_time += timer2.getElapsedTime();
-#endif
-
-                int negative_sample_size = n_generator.sample(dis(gen), dis(gen)) == 0 ? floor_value : ceil_value;
-
-#ifdef DEBUG
-                timer2.start();
-#endif
-
-                vector<int> &n_pre_samples = negative_pre_sampled_results[i];
-
-                for (int sample_index = 0; sample_index < negative_sample_size; sample_index++) {
-
-                    int sampled_target = n_pre_samples[sample_index];
-
-                    if(scores.find(sampled_target)==scores.end()){
-                        scores[sampled_target] -= negative_weight;
-                    } else {
-                        scores[sampled_target] -= negative_weight;
-                    }
-                }
-
-#ifdef DEBUG
-                timer2.stop();
-                search_time += timer2.getElapsedTime();
-#endif
-
-            }
 
 #ifdef DEBUG
             timer2.start();
@@ -422,8 +294,7 @@ public:
         cout << "---- detailed cost ----" << endl;
         cout << "set_edge_time: " << set_edge_time << " secs" << endl;
         cout << "compute_w_time: " << compute_w_time << " secs" << endl;
-        cout << "sum_time: " << sum_time << " secs" << endl;
-        cout << "round_time: " << round_time << " secs" << endl;
+        cout << "clear_map_time: " << clear_map_time << " secs" << endl;
         cout << "nonuniformed_sample_time: " << nonuniformed_sample_time << " secs" << endl;
         cout << "search_time: " << search_time << " secs" << endl;
         cout << "heap_time: " << heap_time << " secs" << endl;

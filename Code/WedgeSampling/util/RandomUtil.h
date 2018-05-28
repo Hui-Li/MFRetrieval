@@ -2,7 +2,7 @@
 #define RANDOMUTIL_H
 
 #include <random>
-#include "../alg/Node.h"
+#include "../structs/Node.h"
 
 namespace DiscreteRandomGenerator{
 
