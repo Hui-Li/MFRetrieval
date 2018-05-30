@@ -11,6 +11,7 @@
 #include "../util/AliasSamplingGenerator.h"
 #include "../structs/FastHeap.h"
 #include "../util/Monitor.h"
+#include "../util/EvalUtil.h"
 
 class WedgePreSampling{
 
@@ -112,7 +113,7 @@ public:
         delete[] third_level;
     }
 
-    void topk(const int k, const int s, VectorElement *wedgeSampleResults) {
+    void topk(const int k, const int s, const bool verify, VectorElement *wedgeSampleResults) {
         this->s = s;
         double total_time = 0;
 
@@ -123,6 +124,12 @@ public:
         first_level_size = 1;
         second_level_size = d;
         third_level_size = PNum;
+
+        VectorElement* verify_heap = nullptr;
+
+        if(verify) {
+            verify_heap = new VectorElement[s];
+        }
 
         P_T = new double[d * PNum]; // d * PNum
         Calculator::transpose(PData, P_T, PNum, d);
@@ -382,17 +389,12 @@ public:
             timer2.start();
 #endif
 
-            int heapCount = 0;
             VectorElement *heap = &wedgeSampleResults[queryIndex * k];
-            for (auto ptr = scores.begin(); ptr != scores.end(); ptr++) {
 
-                if (heapCount < k) {
-                    heap_enqueue(ptr->second, ptr->first, heap, &heapCount);
-                } else if (ptr->second > heap[0].data) {
-                    heap_dequeue(heap, &heapCount);
-                    heap_enqueue(ptr->second, ptr->first, heap, &heapCount);
-                }
-
+            if(verify) {
+                EvalUtil::verified_retrieve(k, s, d, queryIndex, QData, PData, verify_heap, heap, scores);
+            } else {
+                EvalUtil::retrieve(k, heap, scores);
             }
 
 #ifdef DEBUG
@@ -407,6 +409,7 @@ public:
         total_time += timer.getElapsedTime();
         cout << "total time: " << total_time << " secs" << endl;
 
+        delete[] verify_heap;
 #ifdef DEBUG
         cout << "---- detailed cost ----" << endl;
         cout << "set_edge_time: " << set_edge_time << " secs" << endl;

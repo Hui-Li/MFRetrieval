@@ -19,7 +19,8 @@ endif(Boost_FOUND)
 
 set(alg
     alg/WedgeSampling.h
-    alg/WedgePreSampling.h)
+    alg/WedgePreSampling.h
+    alg/WedgeNNSampling.h)
 
 set(structs
     structs/FastHeap.h
@@ -43,3 +44,4 @@ link_libraries(WedgeSampling ${Boost_LIBRARIES} ${MKL_LIBRARIES})
 
 add_executable(runWedgePreSampling runWedgePreSampling.cpp)
 add_executable(runWedgeSampling runWedgeSampling.cpp)
+add_executable(runWedgeNNSampling runWedgeNNSampling.cpp)

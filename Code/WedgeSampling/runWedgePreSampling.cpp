@@ -15,7 +15,8 @@ int main(int argc, char **argv) {
     string groundTruthFilePath = "../../data/MovieLens/result.txt";
     string outputFilePath = "result.txt";
     int k = 10;
-    int s = 1000;
+    int s = 100;
+    bool verify = true;
     int QNum, PNum, d;
     double *QData = nullptr;
     double *PData = nullptr;
@@ -23,6 +24,7 @@ int main(int argc, char **argv) {
     po::options_description desc("Allowed options");
     desc.add_options()
             ("help", "produce help message")
+            ("verify", po::value<bool>(&verify)->default_value(true), "do verification")
             ("k", po::value<int>(&k)->default_value(10), "top k")
             ("s", po::value<int>(&s)->default_value(1000), "number of samples")
             ("q_file", po::value<string>(&QFilePath)->default_value("../../data/MovieLens/q.txt"),
@@ -48,6 +50,7 @@ int main(int argc, char **argv) {
 
     cout << "k: " << k << endl;
     cout << "s: " << s << endl;
+    cout << "verify: " << verify << endl;
     cout << "QNum: " << QNum << endl;
     cout << "PNum: " << PNum << endl;
     cout << "d: " << d << endl;
@@ -55,7 +58,7 @@ int main(int argc, char **argv) {
     VectorElement *wedgeSampleResults = new VectorElement[QNum * k];
 
     WedgePreSampling wedgePreSampling(QNum, PNum, d, QData, PData);
-    wedgePreSampling.topk(k, s, wedgeSampleResults);
+    wedgePreSampling.topk(k, s, verify, wedgeSampleResults);
 
     FileUtil::outputResult(k, d, QNum, QData, PData, wedgeSampleResults, outputFilePath);
 

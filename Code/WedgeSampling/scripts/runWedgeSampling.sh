@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-rm -rf build
-mkdir build
-cd build
+rm -rf build-Wedge
+mkdir build-Wedge
+cd build-Wedge
 cmake ../../
 make
 
@@ -11,7 +11,7 @@ QFilePath="../../../data/MovieLens/q.txt"
 PFilePath="../../../data/MovieLens/p.txt"
 outputFilePath="result.txt"
 k="10"
-s="10000"
+s="100"
+verify="true"
 
-
-./runWedgeSampling --groundTruth $groundTruth --q_file $QFilePath --p_file $PFilePath --outputFilePath $outputFilePath --k $k  --s $s
+./runWedgeSampling --verify $verify --groundTruth $groundTruth --q_file $QFilePath --p_file $PFilePath --outputFilePath $outputFilePath --k $k  --s $s

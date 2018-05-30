@@ -1,9 +1,10 @@
 #include "util/Base.h"
-#include "alg/WedgeSampling.h"
+#include "alg/WedgeNNSampling.h"
 #include "util/EvalUtil.h"
 
 /**
- * Wedge Sampling
+ * Wedge Sampling with nonnegativity assumption
+ * Diamond Sampling for Approximate Maximum All-pairs Dot-product (MAD) Search, ICDM'15
  * @param argc
  * @param argv
  * @return
@@ -17,6 +18,7 @@ int main(int argc, char **argv) {
     int k = 10;
     int s = 100;
     bool verify = true;
+    bool optimize = true;
     int QNum, PNum, d;
     double *QData = nullptr;
     double *PData = nullptr;
@@ -25,6 +27,7 @@ int main(int argc, char **argv) {
     desc.add_options()
             ("help", "produce help message")
             ("verify", po::value<bool>(&verify)->default_value(true), "do verification")
+            ("optimize", po::value<bool>(&optimize)->default_value(true), "optimized implementation")
             ("k", po::value<int>(&k)->default_value(10), "top k")
             ("s", po::value<int>(&s)->default_value(1000), "number of samples")
             ("q_file", po::value<string>(&QFilePath)->default_value("../../data/MovieLens/q.txt"),
@@ -50,25 +53,26 @@ int main(int argc, char **argv) {
 
     cout << "k: " << k << endl;
     cout << "s: " << s << endl;
+    cout << "optimize: " << optimize << endl;
     cout << "verify: " << verify << endl;
     cout << "QNum: " << QNum << endl;
     cout << "PNum: " << PNum << endl;
     cout << "d: " << d << endl;
 
-    VectorElement *wedgeSampleResults = new VectorElement[QNum * k];
+    VectorElement *wedgeNNSampleResults = new VectorElement[QNum * k];
 
-    WedgeSampling wedgeSampling(QNum, PNum, d, QData, PData);
-    wedgeSampling.topk(k, s, verify, wedgeSampleResults);
+    WedgeNNSampling wedgeNNSampling(QNum, PNum, d, QData, PData);
+    wedgeNNSampling.topk(k, s, verify, optimize, wedgeNNSampleResults);
 
-    FileUtil::outputResult(k, d, QNum, QData, PData, wedgeSampleResults, outputFilePath);
+    FileUtil::outputResult(k, d, QNum, QData, PData, wedgeNNSampleResults, outputFilePath);
 
     if (groundTruthFilePath.length() != 0) {
-        EvalUtil::avg_recall(QNum, k, groundTruthFilePath, wedgeSampleResults);
+        EvalUtil::avg_recall(QNum, k, groundTruthFilePath, wedgeNNSampleResults);
     }
 
     delete[] QData;
     delete[] PData;
-    delete[] wedgeSampleResults;
+    delete[] wedgeNNSampleResults;
 
     return 0;
 }

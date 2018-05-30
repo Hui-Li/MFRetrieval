@@ -10,11 +10,13 @@ C++ implementation for papers:
 ### Parameters
 - `k`: top k (Default 10).
 - `s`: number of samples (Default 1000).
-- `q_file`: file path to Q data file
-- `p_file`: file path to P data file
+- `verify`: do postprocessing (Default true).
+- `optimize`: optimized implementation for WedgeNNSampling (Default true).
+- `q_file`: file path to Q data file.
+- `p_file`: file path to P data file.
 - `outputFilePath`: file path to result file
 - `groundTruth`: file path to ground truth file.
 
 
 
-You can check scripts/runWedgeSampling.sh or scripts/runWedgePreSampling.sh for running examples.
+You can check scripts/runWedgeSampling.sh, scripts/runWedgePreSampling.sh or scripts/runWedgeNNSampling.sh for running examples.

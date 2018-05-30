@@ -51,6 +51,60 @@ namespace EvalUtil {
 
         cout << "avg recall: " << recall << endl;
     }
+
+    inline void verified_retrieve(const int k, const int search_k, const int d, const int qIndex, double *QData, double *PData,
+                      VectorElement *large_heap, VectorElement *small_heap,
+                      unordered_map<int, double> &sampled_score) {
+
+        int large_heap_count = 0;
+
+        for (auto ptr = sampled_score.begin(); ptr != sampled_score.end(); ptr++) {
+            if (large_heap_count < search_k) {
+                heap_enqueue(ptr->second, ptr->first, large_heap, &large_heap_count);
+            } else {
+                if (ptr->second > large_heap[0].data) {
+                    heap_dequeue(large_heap, &large_heap_count);
+                    heap_enqueue(ptr->second, ptr->first, large_heap, &large_heap_count);
+                }
+            }
+        }
+
+        int small_heap_count = 0;
+        for (int i = 0; i < large_heap_count; i++) {
+
+            double *qRowPtr = QData + qIndex * d;
+            int pIndex = large_heap[i].id;
+            double *pRowPtr = PData + pIndex * d;
+            double ip = std::inner_product(qRowPtr, qRowPtr + d, pRowPtr, 0.0);
+
+            if (small_heap_count < k) {
+                heap_enqueue(ip, pIndex, small_heap, &small_heap_count);
+            } else {
+                if (ip > small_heap[0].data) {
+                    heap_dequeue(small_heap, &small_heap_count);
+                    heap_enqueue(ip, pIndex, small_heap, &small_heap_count);
+                }
+            }
+
+        }
+
+    }
+
+    inline void retrieve(const int k, VectorElement *heap,
+                         unordered_map<int, double> &sampled_score) {
+        int heap_count = 0;
+
+        for (auto ptr = sampled_score.begin(); ptr != sampled_score.end(); ptr++) {
+            if (heap_count < k) {
+                heap_enqueue(ptr->second, ptr->first, heap, &heap_count);
+            } else {
+                if (ptr->second > heap[0].data) {
+                    heap_dequeue(heap, &heap_count);
+                    heap_enqueue(ptr->second, ptr->first, heap, &heap_count);
+                }
+            }
+        }
+    }
 }
 
 #endif //EVALUTIL_H
