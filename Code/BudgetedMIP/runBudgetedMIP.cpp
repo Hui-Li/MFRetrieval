@@ -14,7 +14,6 @@ int main(int argc, char **argv) {
     string outputFilePath = "naive_result.txt";
     int k = 10;
     int budget = 1024;
-    int nthreads = -1;
     int QNum, PNum, d;
     double *QData = nullptr;
     double *PData = nullptr;
@@ -24,7 +23,6 @@ int main(int argc, char **argv) {
             ("help", "produce help message")
             ("k", po::value<int>(&k)->default_value(10), "top k")
             ("b", po::value<int>(&budget)->default_value(1024), "budget")
-            ("n", po::value<int>(&nthreads)->default_value(-1), "number of threads. -1: automatically set.")
             ("q_file", po::value<string>(&QFilePath)->default_value("../../data/MovieLens/q.txt"),
              "file path to Q data file")
             ("p_file", po::value<string>(&PFilePath)->default_value("../../data/MovieLens/p.txt"),
@@ -62,11 +60,7 @@ int main(int argc, char **argv) {
 
     cout << "retrieval time: " << timer.getElapsedTime() << endl;
 
-    if (nthreads == -1) {
-        nthreads = std::thread::hardware_concurrency();
-    }
-
-    cout << "number of threads: " << nthreads << endl;
+    int nthreads = std::thread::hardware_concurrency();
 
     EvalUtil::avg_recall(QNum, k, groundTruthFilePath, results);
     FileUtil::outputResult(k, d, QNum, QData, PData, results, outputFilePath);
