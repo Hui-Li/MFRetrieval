@@ -28,7 +28,8 @@ set(util
     util/Monitor.h
     util/Base.h
     util/FileUtil.h
-    util/AliasSamplingGenerator.h)
+    util/AliasSamplingGenerator.h
+    util/EvalUtil.h)
 
 add_library(DiamondSampling SHARED ${alg} ${util} ${structs})
 set_target_properties(DiamondSampling PROPERTIES LINKER_LANGUAGE CXX)

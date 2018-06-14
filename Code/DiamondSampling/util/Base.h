@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <vector>
 #include <map>
+#include <math.h>
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
@@ -15,6 +16,7 @@
 #include <thread>
 #include <string>
 #include <cstdlib>
+#include <stdio.h>
 #include <sys/stat.h>
 #include <functional>
 
@@ -28,6 +30,7 @@ using std::ofstream;
 
 using std::string;
 using std::vector;
+using std::fabs;
 using std::set;
 using std::list;
 using std::make_pair;

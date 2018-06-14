@@ -22,18 +22,18 @@ public:
     AliasSamplingGenerator(const int n, double *weight) : n(n) {
         alias = (int *) malloc(n * sizeof(int));
         prob = (double *) malloc(n * sizeof(double));
-        if (alias == NULL || prob == NULL) {
-            printf("Error: memory allocation failed!\n");
-            exit(1);
-        }
+//        if (alias == NULL || prob == NULL) {
+//            printf("Error: memory allocation failed!\n");
+//            exit(1);
+//        }
 
         double *norm_prob = (double *) malloc(n * sizeof(double));
         int *large_block = (int *) malloc(n * sizeof(int));
         int *small_block = (int *) malloc(n * sizeof(int));
-        if (norm_prob == NULL || large_block == NULL || small_block == NULL) {
-            printf("Error: memory allocation failed!\n");
-            exit(1);
-        }
+//        if (norm_prob == NULL || large_block == NULL || small_block == NULL) {
+//            printf("Error: memory allocation failed!\n");
+//            exit(1);
+//        }
 
         double sum = 0;
         int cur_small_block, cur_large_block;

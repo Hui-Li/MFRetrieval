@@ -20,7 +20,7 @@ private:
     double *PData = nullptr;
 
     inline void verified_retrieve(const int k, const int search_k, const int qIndex, VectorElement *large_heap, VectorElement *small_heap,
-                         unordered_map<int, double> &sampled_score) {
+                                  unordered_map<int, double> &sampled_score) {
 
         int large_heap_count = 0;
 
@@ -61,12 +61,15 @@ private:
         int heap_count = 0;
 
         for (auto ptr = sampled_score.begin(); ptr != sampled_score.end(); ptr++) {
+
+            double ip = std::inner_product(QData + qIndex * d, QData + qIndex * d + d, PData + ptr->first * d, 0.0);
+
             if (heap_count < k) {
-                heap_enqueue(ptr->second, ptr->first, heap, &heap_count);
+                heap_enqueue(ip, ptr->first, heap, &heap_count);
             } else {
-                if (ptr->second > heap[0].data) {
+                if (ip > heap[0].data) {
                     heap_dequeue(heap, &heap_count);
-                    heap_enqueue(ptr->second, ptr->first, heap, &heap_count);
+                    heap_enqueue(ip, ptr->first, heap, &heap_count);
                 }
             }
         }
@@ -100,7 +103,7 @@ public:
         for (int pIndex = 0; pIndex < PNum; pIndex++) {
             double *rowPtr = PData + pIndex * d;
             for (int col = 0; col < d; col++) {
-                double value = std::abs(rowPtr[col]);
+                double value = std::fabs(rowPtr[col]);
                 p_probabilities[col][pIndex] = value;
                 P_column_sum[col] += value;
             }
@@ -126,23 +129,22 @@ public:
 
         for (int queryIndex = 0; queryIndex < QNum; queryIndex++) {
 
-//            if(queryIndex % 1000 == 0) {
-//                cout << queryIndex << " of " << QNum << endl;
-//            }
-
             timer.start();
 
             sampled_score.clear();
 
             double *qPtr = QData + queryIndex * d;
-            double q_Norm = 0;
+
+//            double q_Norm = 0;
             for (int col = 0; col < d; col++) {
-                q_probability[col] = std::abs(qPtr[col]);
-                q_Norm += q_probability[col];
+                q_probability[col] = std::fabs(qPtr[col]);
+//                q_Norm += q_probability[col];
             }
 
             for (int col = 0; col < d; col++) {
-                edges_weights[col] = q_probability[col] * q_Norm * P_column_sum[col];
+                // q_Norm is not necessary! All elements are a product of q_Norm.
+//                edges_weights[col] = q_probability[col] * q_Norm * P_column_sum[col];
+                edges_weights[col] = q_probability[col] * P_column_sum[col];
             }
 
             timer.stop();
@@ -167,6 +169,8 @@ public:
 
                 double sgn = qPtr[k] * pRowPtr[k] * qPtr[kPrime];
                 sgn = (sgn >= 0) ? 1 : -1;
+
+                // Sampled score seems to be useless, the true inner product will be computed anyway.
                 if(sampled_score.find(pIndex) == sampled_score.end()){
                     sampled_score[pIndex] = sgn * pRowPtr[kPrime];
                 } else {
@@ -184,12 +188,9 @@ public:
             } else {
                 retrieve(k, queryIndex, sampledResults + k * queryIndex, sampled_score);
             }
+
             timer.stop();
             retrieve_time += timer.getElapsedTime();
-        }
-
-        if(verify) {
-            delete[] large_heap;
         }
 
         for (int i = 0; i < samplers2.size(); i++) {
