@@ -18,15 +18,19 @@ if(Boost_FOUND)
 endif(Boost_FOUND)
 
 set(alg
-    alg/DiamondSampling.h)
+    alg/DiamondSampling.h
+    alg/ADiamondSampling.h)
 
 set(structs
     structs/FastHeap.h
+    structs/htree_t.h
     structs/VectorElement.h)
 
 set(util
     util/Monitor.h
     util/Base.h
+    util/RandomUtil.h
+    util/CompareUtil.h
     util/FileUtil.h
     util/AliasSamplingGenerator.h
     util/EvalUtil.h)
@@ -35,4 +39,5 @@ add_library(DiamondSampling SHARED ${alg} ${util} ${structs})
 set_target_properties(DiamondSampling PROPERTIES LINKER_LANGUAGE CXX)
 link_libraries(DiamondSampling ${Boost_LIBRARIES} ${MKL_LIBRARIES})
 
+add_executable(runADiamondSampling runADiamondSampling.cpp)
 add_executable(runDiamondSampling runDiamondSampling.cpp)

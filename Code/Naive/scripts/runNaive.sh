@@ -9,7 +9,7 @@ make
 QFilePath="../../../data/MovieLens/q.txt"
 PFilePath="../../../data/MovieLens/p.txt"
 
-outputFilePath="Netflix_UM_result.txt"
+outputFilePath="MovieLens_result.txt"
 k="10"
 n="-1"
 
